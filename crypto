@@ -1,0 +1,53 @@
+import hashlib, struct
+import codecs
+import random
+
+def calculate(version,prev_block1,mrkl_root1,time1,bits1,nonce1,nonce2,option):
+    ver = version
+    prev_block = prev_block1
+    mrkl_root = mrkl_root1
+    time_ = time1
+    bits = bits1
+
+    exp = bits >> 24
+    mant = bits & 0xffffff
+    target_hexstr = '%064x' % (mant * (1 << (8 * (exp - 3))))
+    target_str = bytes.fromhex(target_hexstr)
+    #print(bits)
+    nonce = nonce1
+    counter = 0
+    while nonce < nonce2:
+        header = (struct.pack("<L", ver) + bytes.fromhex(prev_block)[::-1] +
+                bytes.fromhex(mrkl_root)[::-1] + struct.pack("<LLL", time_, bits, nonce))
+        hash = hashlib.sha256(hashlib.sha256(header).digest()).digest()
+        if option == 1 and counter<=4:
+            counter+=1
+            print(nonce, bytes.hex(hash[::-1]))
+        else:
+            #print(nonce,  bytes.hex(hash[::-1]))
+            if hash[::-1] < target_str:
+                print('success')
+                print(hash[::-1])
+                break
+        nonce += 1
+    return nonce
+
+
+
+if __name__ == "__main__":
+    version  = 0x20400000
+    prev_block = "00000000000000000006a4a234288a44e715275f1775b77b2fddb6c02eb6b72f"
+    merkel_root = "2dc60c563da5368e0668b81bc4d8dd369639a1134f68e425a9a74e428801e5b8"
+    time = 0x5DB8AB5E
+    bits = 0x17148EDF
+    first_case = 0
+    second_case = 1
+    start_once  = 1531678903
+    nonce = calculate(version,prev_block,merkel_root,time,bits,int(3e9),int(31e8),option=1)
+    print(nonce)
+    try_once = random.randint(start_once,start_once+1e8)
+    nonce_out = calculate(version, prev_block, merkel_root, time, bits, try_once, try_once+1e8,option=2)
+    if nonce_out == try_once+1e8:
+        print('Fail')
+    else:
+        print(nonce_out)
